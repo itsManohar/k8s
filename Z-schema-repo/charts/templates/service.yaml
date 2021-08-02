@@ -1,0 +1,24 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.service.name }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    elb.fcp/backend-port: '{{ .Values.elb.backendPort }}'
+    elb.fcp/frontend-port: '{{ .Values.elb.frontendPort }}'
+    elb.fcp/health-check-interval: 5s
+    elb.fcp/health-check-path: /healthcheck
+    elb.fcp/health-check-port: '{{ .Values.elb.healthcheckPort }}'
+    elb.fcp/health-check-timeout: 4s
+    elb.fcp/load-balancing-algorithm: leastconn
+    elb.fcp/name: {{ .Values.elb.name }}
+    fcp/app-id: {{ .Values.appId }}
+    elb.fcp/do-not-delete-vip: "true"
+    elb.fcp/backend-service: {{ .Values.elb.backendService }}
+spec:
+  selector:
+    service: {{ .Values.serviceName }}
+  ports:
+    - port: 44
+      targetPort: 25931
+  type: LoadBalancer

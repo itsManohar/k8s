@@ -1,0 +1,56 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.metadata.namespace }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      service: {{ .Values.serviceName }}
+  template:
+    metadata:
+      namespace: {{ .Values.metadata.namespace }}
+      labels:
+        service: {{ .Values.serviceName }}
+      annotations:
+        fcp.k8s.mtl/cosmos-jmx: {{ .Values.annotations.cosmosjmx }}
+        fcp.k8s.mtl/cosmos-statsd: {{ .Values.annotations.cosmosstatsd }}
+        fcp.k8s.mtl/cosmos-tail: {{ .Values.annotations.cosmostail }}
+        fcp.k8s.mtl/mtl-config-map: {{ .Values.annotations.mtlconfigmap }}-cosmos
+    spec:
+      securityContext:
+        fsGroup: {{ .Values.fsGroup }} 
+      volumes:
+        - name: app
+          configMap:
+            name: {{ .Values.annotations.mtlconfigmap }}-config
+            items:
+                - key: configuration
+                  path: {{ .Values.paths.appConfigFile }}   
+      containers:
+        - name: {{ .Values.image.api.name }}
+          image: {{ .Values.image.api.registry }}/schema-repo@sha256:c3d4d2b2dccfd3070453aaed470bae525cfce89d392adaa6ec3e4c6c95672403
+          imagePullPolicy: {{ .Values.image.api.pullPolicy }}
+          args: ["java $(JMX_OPTS) -Duser.timezone='Asia/Kolkata' -jar $(CLASS_PATH) server $(CONFIG_PATH)"]
+          ports:
+            {{ toYaml .Values.ports | nindent 12 }}
+          resources:
+            {{ toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: {{ tpl .Values.paths.appConfigDir . }}
+              name: app
+          securityContext:
+            runAsUser: {{ tpl .Values.runAsUser . }}
+            runAsNonRoot: {{ tpl .Values.runAsNonRoot . }}
+          env:
+            - name: CLASS_PATH
+              value: {{ tpl .Values.jvmOptions.shadowJar . }}
+            - name: JMX_OPTS
+              value: {{ tpl .Values.jvmOptions.javaOpts . }}
+            - name: CONFIG_PATH
+              value: {{ tpl .Values.paths.appConfigDir . }}/{{ tpl .Values.paths.appConfigFile . }}
+          
+      

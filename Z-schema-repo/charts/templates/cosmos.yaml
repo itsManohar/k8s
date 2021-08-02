@@ -1,0 +1,36 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ .Values.annotations.mtlconfigmap }}-cosmos
+  namespace: {{ .Values.namespace }}
+data:
+  cosmos-jmx.json: |
+    {
+      "servers": [
+        {
+          "port": "25961",
+          "host": "localhost",
+          "process": "{{ .Values.name }}",
+          "queries": [
+            {
+              "obj" : "metrics:name=VIEWMETRICS*",
+              "typeNameModifiers": [
+                {
+                  "typeNameMatcher": "metrics.VIEWMETRICS__(\\w+)__(\\w+)",
+                  "typeNameGenerator": "VIEWMETRICS.view",
+                  "tags": [
+                    { "name": "stage", "valueGenerator": "${1}" },
+                    { "name": "viewId", "valueGenerator": "${2}" }
+                  ]
+                }
+              ]
+            },
+            {
+              "obj" : "*",
+              "saperator" : "."
+            }
+          ],
+          "numQueryThreads": 2
+        }
+      ]
+    }

@@ -1,0 +1,82 @@
+name: schema-repo
+appId: fk-ad-data-schema-repo 
+zone: in-chennai-1
+replicas: 1
+metadata:
+  namespace: m3-data-schema-repo-prod
+
+serviceName: schema-repo-service
+annotations:
+  cosmosjmx: disabled
+  cosmosstatsd: disabled
+  cosmostail: disabled
+  mtlconfigmap: schema-repo
+
+
+image:
+  api:
+    name: schema-repo-container
+    registry: container-registry.alm.fkcloud.in/m3-data-dapi
+    repository: m3-data-schema-repo-prod
+    tag: 1
+    pullPolicy: IfNotPresent
+    bucket: ""
+ports:
+  - containerPort: 25932
+  - containerPort: 80
+  - containerPort: 25931
+resources:
+  limits:
+    cpu: 4
+    memory: 8G
+  requests:
+    cpu: 4
+    memory: 8G
+runAsUser: '4089'
+runAsNonRoot: 'true'
+fsGroup: 4089
+elb:
+  name: schema-repo-prod-k8s-test
+  backendService: schema-repo-prod-k8s-test
+  frontendPort: 80
+  backendPort: 25931
+  healthcheckPort: 25932
+service:
+  name: schema-repo-prod
+  
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+paths:
+  appConfigDir: "/etc/schema-repo"
+  appConfigDirNew: "/usr/share/schema-repo"
+  appConfigFile: "configuration.yaml"
+  meghDir: "/etc/default/megh"
+  meghFile: "instance_metadata.json"
+  envDir: "/etc/default/{{ .Values.appId }}"
+  envFile: "conf_env"
+  logDir: "/var/log/{{ .Values.appId }}"
+  rotationFile: "rotation_status.txt"
+  prodFile: "prod.txt"
+  rotationDir: "/var/log/flipkart/schema-repo"
+  logFile: "application.log"
+jvmOptions:
+  javaOpts: "-Xloggc:/var/log/flipkart/{{ .Values.appId }}/gc.log  \
+  -Dcom.sun.management.jmxremote \
+  -Dcom.sun.management.jmxremote.port=25933 \
+  -Dcom.sun.management.jmxremote.authenticate=false \
+  -Dcom.sun.management.jmxremote.ssl=false"
+  debug: "-XX:ErrorFile=/tmp/hs_err_pid_{{ .Values.appId }}_{{ now | unixEpoch }}.log
+              -XX:HeapDumpPath=/tmp/java_pid_{{ .Values.appId }}_{{ now | unixEpoch }}.hprof
+              -XX:-HeapDumpOnOutOfMemoryError
+              -Xloggc:{{ .Values.paths.logDir }}/{{ .Values.paths.gcLog }}
+              -XX:+PrintGCDetails
+              -XX:+PrintGCDateStamps
+              -XX:+PrintGCTimeStamps
+              -XX:+UseGCLogFileRotation
+              -XX:NumberOfGCLogFiles=5
+              -XX:GCLogFileSize=100M"
+  remoteDebug: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address={{ .Values.ports.debug }}"
+  shadowJar: "/usr/share/schema-repo/app.jar"

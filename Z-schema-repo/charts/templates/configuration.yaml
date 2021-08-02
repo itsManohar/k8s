@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.annotations.mtlconfigmap }}-config
+  namespace: {{ .Values.namespace }}
+data:
+  configuration: |
+    rotationBundleConfiguration:
+      persistent: true
+      filePath: /tmp/schema-repo.oor
+    maxConcurrency: 900
+    defaultCompatibilityLevel: NONE
+    dataSchemaDB:
+      driverClass: com.mysql.jdbc.Driver
+      user: v_fk-a_fAuC3ekth
+      password: RtG2c-TGuDDJAfla6Ptx
+      url: jdbc:mysql://master.infra-platform-m3-data-schema-repo-mysql.prod.altair.fkcloud.in/schemarepodb
+      properties:
+        charSet: UTF-8
+      maxWaitForConnection: 1s
+      validationQuery: "/* MyService Health Check */ SELECT 1"
+      minSize: 8
+      maxSize: 32
+      checkConnectionWhileIdle: true
+      evictionInterval: 10s
+      minIdleTime: "1 minute"
+    server:
+      type: default
+      applicationConnectors:
+      - type: http
+        port: 25931
+      adminConnectors:
+      - type: http
+        port: 25932
+      requestLog:
+        appenders:
+        - type: file
+          currentLogFilename: /var/log/flipkart/ads/fk-ad-data-schema-repo/access.log
+          archive: true
+          archivedLogFilenamePattern: /var/log/flipkart/ads/fk-ad-data-schema-repo/access-%i.log
+          archivedFileCount: 3
+          maxFileSize: 500MB
+          timeZone: IST
+    logging:
+      level: INFO
+      loggers:
+        elb-healthcheck: ERROR
+        healthcheck: ERROR
+      appenders:
+      - type: file
+        currentLogFilename: /var/log/flipkart/ads/fk-ad-data-schema-repo/root.log
+        archive: true
+        archivedLogFilenamePattern: /var/log/flipkart/ads/fk-ad-data-schema-repo/root-%i.log
+        archivedFileCount: 6
+        timeZone: IST
+        logFormat: "[%-5level][%date][%logger]: %msg%n%rEx{}%n"
+        maxFileSize: 500MB
+
